@@ -58,7 +58,7 @@ const createRequest = async (req, res) => {
         const timeStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
         const distanceText = distanceKm ? `${parseFloat(distanceKm).toFixed(1)} km away` : 'distance unknown';
         const vehicleText = vehicleNumber || 'N/A';
-        const dashboardUrl = `http://10.21.130.199:5000/dashboard`;
+        const dashboardUrl = `http://10.21.130.199:5000/dashboard?hospital=${hospitalId}`;
 
         // Build vitals HTML
         const vitalsHtml = vitals ? `
@@ -83,26 +83,18 @@ const createRequest = async (req, res) => {
 
         await sendMail({
           to: hospital.assignedEmail,
-          subject: `🚑 Route4Life – Doctor Availability Request for ${hospital.name}`,
+          subject: `🚑 Route4Life – Incoming Ambulance Request · ${hospital.name}`,
           html: `
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;border:1px solid #ddd;border-radius:8px;overflow:hidden">
               <div style="background:#e53935;padding:20px;text-align:center">
-                <h1 style="color:#fff;margin:0">🚑 Route4Life Emergency Request</h1>
+                <h1 style="color:#fff;margin:0">🚑 Route4Life Emergency</h1>
               </div>
               <div style="padding:24px">
-                <h2 style="color:#333">A nearby ambulance is requesting doctor availability</h2>
+                <h2 style="color:#333">An ambulance is requesting availability at ${hospital.name}</h2>
                 <table style="width:100%;border-collapse:collapse;margin-top:16px">
                   <tr style="background:#f5f5f5">
-                    <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Hospital</td>
-                    <td style="padding:10px;border:1px solid #ddd">${hospital.name}</td>
-                  </tr>
-                  <tr>
                     <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Emergency Type</td>
                     <td style="padding:10px;border:1px solid #ddd;color:#e53935;font-weight:bold">${emergencyType || 'Critical'}</td>
-                  </tr>
-                  <tr style="background:#f5f5f5">
-                    <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Ambulance Vehicle</td>
-                    <td style="padding:10px;border:1px solid #ddd">${vehicleText}</td>
                   </tr>
                   <tr>
                     <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Distance</td>
@@ -110,29 +102,20 @@ const createRequest = async (req, res) => {
                   </tr>
                   ${vitalsHtml}
                   <tr style="background:#f5f5f5">
-                    <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Request Time</td>
+                    <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Time</td>
                     <td style="padding:10px;border:1px solid #ddd">${timeStr}</td>
-                  </tr>
-                  <tr>
-                    <td style="padding:10px;font-weight:bold;border:1px solid #ddd">Request ID</td>
-                    <td style="padding:10px;border:1px solid #ddd;font-size:12px;color:#888">${request._id}</td>
                   </tr>
                 </table>
                 ${todosHtml}
-                ${audioUrl ? `<p style="margin-top:16px">🎙 <b>Voice note recorded</b> — available on the hospital dashboard.</p>` : ''}
-                <p style="margin-top:20px;color:#555">Please respond <b>immediately</b>:</p>
-                <div style="text-align:center;margin:24px 0">
-                  <a href="http://10.21.130.199:5000/api/request/${request._id}/respond?action=accept"
-                     style="background:#2e7d32;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;margin-right:12px;display:inline-block">
-                    ✅ ACCEPT
-                  </a>
-                  <a href="http://10.21.130.199:5000/api/request/${request._id}/respond?action=reject"
-                     style="background:#c62828;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-size:16px;font-weight:bold;display:inline-block">
-                    ❌ REJECT
+                ${audioUrl ? `<p style="margin-top:16px">🎙 <b>Voice note attached</b> — listen on the dashboard.</p>` : ''}
+                <div style="text-align:center;margin:32px 0">
+                  <a href="${dashboardUrl}"
+                     style="background:#e53935;color:#fff;padding:16px 40px;border-radius:10px;text-decoration:none;font-size:18px;font-weight:bold;display:inline-block">
+                    🏥 Open Hospital Dashboard →
                   </a>
                 </div>
-                <p style="text-align:center"><a href="${dashboardUrl}" style="color:#1976d2">Open Hospital Dashboard →</a></p>
-                <p style="color:#999;font-size:12px;margin-top:32px">This is an automated alert from the Route4Life Ambulance Navigation System.</p>
+                <p style="color:#555;text-align:center;font-size:13px">Accept or reject this request from your hospital dashboard.</p>
+                <p style="color:#999;font-size:12px;margin-top:24px;text-align:center">Route4Life Ambulance Navigation System</p>
               </div>
             </div>
           `,
@@ -195,7 +178,9 @@ const updateRequestStatus = async (req, res) => {
 // GET /api/request  — get all requests (hospital dashboard)
 const getAllRequests = async (req, res) => {
   try {
-    const requests = await Request.find()
+    const { hospitalId } = req.query;
+    const filter = hospitalId ? { hospitalId } : {};
+    const requests = await Request.find(filter)
       .populate('hospitalId', 'name address lat lng assignedEmail')
       .sort({ createdAt: -1 })
       .limit(100);

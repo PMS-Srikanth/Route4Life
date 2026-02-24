@@ -1,23 +1,25 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Route4Life · Hospital Dashboard</title>
+  <title>Route4Life  Hospital Dashboard</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #212121; min-height: 100vh; }
 
-    /* ── Header ── */
+    /* Header */
     .header { background: #e53935; color: #fff; padding: 14px 24px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.2); position: sticky; top: 0; z-index: 100; }
     .header h1 { font-size: 20px; font-weight: 700; }
     .header .sub { font-size: 13px; opacity: .85; }
     .header .spacer { flex: 1; }
+    .header .back-btn { background: rgba(255,255,255,.2); border: none; color: #fff; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; }
+    .header .back-btn:hover { background: rgba(255,255,255,.3); }
     .refresh-badge { background: rgba(255,255,255,.2); border-radius: 20px; padding: 4px 14px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
     .pulse { width: 8px; height: 8px; border-radius: 50%; background: #a5d6a7; animation: pulseAnim 1.5s infinite; }
     @keyframes pulseAnim { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.4)} }
 
-    /* ── Stats bar ── */
+    /* Stats bar */
     .stats { display: flex; gap: 12px; padding: 16px 24px 0; flex-wrap: wrap; }
     .stat { background: #fff; border-radius: 10px; padding: 12px 20px; flex: 1; min-width: 120px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
     .stat .val { font-size: 28px; font-weight: 700; }
@@ -26,16 +28,16 @@
     .stat.accepted .val { color: #388e3c; }
     .stat.rejected .val { color: #d32f2f; }
 
-    /* ── Filter bar ── */
+    /* Filter bar */
     .filter-bar { padding: 12px 24px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .filter-btn { padding: 6px 16px; border-radius: 20px; border: 1.5px solid #bbb; background: #fff; cursor: pointer; font-size: 13px; transition: all .15s; }
     .filter-btn.active { background: #e53935; border-color: #e53935; color: #fff; font-weight: 600; }
 
-    /* ── Cards grid ── */
+    /* Cards grid */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 16px; padding: 0 24px 24px; }
     @media (max-width: 560px) { .grid { grid-template-columns: 1fr; padding: 0 12px 24px; } }
 
-    /* ── Request card ── */
+    /* Request card */
     .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,.08); transition: box-shadow .2s; }
     .card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.12); }
     .card-header { padding: 14px 18px; display: flex; align-items: flex-start; gap: 10px; border-bottom: 1px solid #f0f0f0; }
@@ -48,31 +50,31 @@
     .status-accepted { background: #e8f5e9; color: #388e3c; }
     .status-rejected { background: #ffebee; color: #d32f2f; }
 
-    /* ── Vitals ── */
+    /* Vitals */
     .section { padding: 12px 18px; border-bottom: 1px solid #f5f5f5; }
     .section-title { font-size: 12px; font-weight: 700; color: #757575; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
     .vitals-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .vital-chip { background: #f5f5f5; border-radius: 8px; padding: 8px 6px; text-align: center; }
     .vital-chip .v { font-size: 16px; font-weight: 700; color: #e53935; }
     .vital-chip .l { font-size: 10px; color: #757575; margin-top: 2px; }
-    .vital-chip.alert { background: #e8f5e9; }
-    .vital-chip.verbal { background: #fff9c4; }
-    .vital-chip.pain   { background: #ffe0b2; }
-    .vital-chip.unresponsive { background: #ffebee; }
+    .vital-chip.alert       { background: #e8f5e9; }
+    .vital-chip.verbal      { background: #fff9c4; }
+    .vital-chip.pain        { background: #ffe0b2; }
+    .vital-chip.unresponsive{ background: #ffebee; }
     .notes-text { font-size: 13px; color: #424242; font-style: italic; background: #f9f9f9; border-radius: 8px; padding: 8px 12px; margin-top: 6px; }
 
-    /* ── Audio ── */
+    /* Audio */
     .audio-wrap { padding: 12px 18px; border-bottom: 1px solid #f5f5f5; }
     audio { width: 100%; height: 36px; }
 
-    /* ── TODOs ── */
+    /* TODOs */
     .todos-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
     .todo-item { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
     .todo-item input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; accent-color: #388e3c; flex-shrink: 0; }
     .todo-item label { font-size: 13px; cursor: pointer; flex: 1; }
     .todo-item.done label { text-decoration: line-through; color: #9e9e9e; }
 
-    /* ── Actions ── */
+    /* Actions */
     .actions { padding: 12px 18px; display: flex; gap: 10px; }
     .btn { flex: 1; padding: 10px; border-radius: 8px; border: none; font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity .15s; }
     .btn:disabled { opacity: .4; cursor: default; }
@@ -80,79 +82,203 @@
     .btn-reject { background: #d32f2f; color: #fff; }
     .btn:hover:not(:disabled) { opacity: .85; }
 
-    /* ── Empty ── */
+    /* Empty / Spinner */
     .empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: #9e9e9e; }
     .empty .icon { font-size: 56px; margin-bottom: 12px; }
-
-    /* ── Loading spinner ── */
     .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ========== SELECTOR PAGE ========== */
+    #selectorPage { display: none; padding: 24px; }
+    #selectorPage h2 { font-size: 18px; color: #555; margin-bottom: 20px; }
+    .hosp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .hosp-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.08); cursor: pointer; transition: box-shadow .2s, transform .15s; display: flex; flex-direction: column; gap: 8px; }
+    .hosp-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.14); transform: translateY(-2px); }
+    .hosp-card .hosp-name { font-size: 16px; font-weight: 700; color: #212121; }
+    .hosp-card .hosp-addr { font-size: 12px; color: #757575; }
+    .hosp-card .hosp-badge { align-self: flex-start; background: #e53935; color: #fff; border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 600; margin-top: 4px; }
+
+    /* ========== DASHBOARD PAGE ========== */
+    #dashboardPage { display: none; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <span style="font-size:28px">🏥</span>
+  <!-- Shared header (shown on both pages) -->
+  <div class="header" id="pageHeader">
+    <span style="font-size:28px"></span>
     <div>
-      <h1>Route4Life · Hospital Dashboard</h1>
-      <div class="sub">Real-time ambulance request monitoring</div>
+      <h1 id="headerTitle">Route4Life  Hospital Dashboard</h1>
+      <div class="sub" id="headerSub">Select a hospital to view requests</div>
     </div>
     <div class="spacer"></div>
-    <div class="refresh-badge">
-      <div class="pulse" id="pulseDot"></div>
-      <span id="refreshLabel">Refreshing…</span>
+    <button class="back-btn" id="backBtn" style="display:none" onclick="goSelector()"> All Hospitals</button>
+    <div class="refresh-badge" id="refreshBadge" style="display:none">
+      <div class="pulse"></div>
+      <span id="refreshLabel">Live</span>
     </div>
   </div>
 
-  <div class="stats" id="statsBar">
-    <div class="stat pending"> <div class="val" id="statPending">—</div> <div class="lbl">Pending</div> </div>
-    <div class="stat accepted"><div class="val" id="statAccepted">—</div><div class="lbl">Accepted</div></div>
-    <div class="stat rejected"><div class="val" id="statRejected">—</div><div class="lbl">Rejected</div></div>
-    <div class="stat">        <div class="val" id="statTotal">—</div>   <div class="lbl">Total Today</div></div>
+  <!-- ===== SELECTOR PAGE ===== -->
+  <div id="selectorPage">
+    <h2>Select your hospital to open the dashboard:</h2>
+    <div class="hosp-grid" id="hospGrid">
+      <div class="empty"><div class="icon"></div><p>Loading hospitals</p></div>
+    </div>
   </div>
 
-  <div class="filter-bar" id="filterBar">
-    <strong style="font-size:13px;color:#555">Filter:</strong>
-    <button class="filter-btn active" data-filter="all">All</button>
-    <button class="filter-btn" data-filter="pending">Pending</button>
-    <button class="filter-btn" data-filter="accepted">Accepted</button>
-    <button class="filter-btn" data-filter="rejected">Rejected</button>
-  </div>
+  <!-- ===== DASHBOARD PAGE ===== -->
+  <div id="dashboardPage">
 
-  <div class="grid" id="requestGrid">
-    <div class="empty"><div class="icon">⏳</div><p>Loading requests…</p></div>
+    <div class="stats">
+      <div class="stat pending"> <div class="val" id="statPending">—</div>  <div class="lbl">Pending</div></div>
+      <div class="stat accepted"><div class="val" id="statAccepted">—</div> <div class="lbl">Accepted</div></div>
+      <div class="stat rejected"><div class="val" id="statRejected">—</div> <div class="lbl">Rejected</div></div>
+      <div class="stat">         <div class="val" id="statTotal">—</div>    <div class="lbl">Total Today</div></div>
+    </div>
+
+    <div class="filter-bar">
+      <strong style="font-size:13px;color:#555">Filter:</strong>
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="pending">Pending</button>
+      <button class="filter-btn" data-filter="accepted">Accepted</button>
+      <button class="filter-btn" data-filter="rejected">Rejected</button>
+    </div>
+
+    <div class="grid" id="requestGrid">
+      <div class="empty"><div class="icon"></div><p>Loading requests</p></div>
+    </div>
+
   </div>
 
 <script>
-  const API = 'http://10.21.130.199:5000/api';
-  let allRequests = [];
+  const BASE = 'http://10.21.130.199:5000';
+  const API  = BASE + '/api';
+
+  let allRequests   = [];
   let currentFilter = 'all';
+  let currentHospId = null;
+  let pollTimer     = null;
 
-  // ── Filter buttons ──────────────────────────────────────────────────────
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      renderGrid(allRequests);
+  //  Boot 
+  const params = new URLSearchParams(window.location.search);
+  const hospitalParam = params.get('hospital');
+
+  if (hospitalParam) {
+    openDashboard(hospitalParam);
+  } else {
+    openSelector();
+  }
+
+  //  Selector page 
+  async function openSelector() {
+    document.getElementById('selectorPage').style.display = 'block';
+    document.getElementById('dashboardPage').style.display = 'none';
+    document.getElementById('backBtn').style.display = 'none';
+    document.getElementById('refreshBadge').style.display = 'none';
+    document.getElementById('headerTitle').textContent = 'Route4Life  Hospital Dashboard';
+    document.getElementById('headerSub').textContent = 'Select a hospital to view requests';
+
+    try {
+      const res  = await fetch(`${API}/hospitals`);
+      const data = await res.json();
+      const hospitals = Array.isArray(data) ? data : (data.hospitals || []);
+
+      if (hospitals.length === 0) {
+        document.getElementById('hospGrid').innerHTML =
+          `<div class="empty"><div class="icon"></div><p>No hospitals found in database.</p></div>`;
+        return;
+      }
+
+      document.getElementById('hospGrid').innerHTML = hospitals.map(h => `
+        <div class="hosp-card" onclick="navigateToDashboard('${h._id}', '${escHtml(h.name)}')">
+          <div class="hosp-name">${escHtml(h.name)}</div>
+          <div class="hosp-addr">${escHtml(h.address || '')}</div>
+          <span class="hosp-badge">Open Dashboard </span>
+        </div>
+      `).join('');
+    } catch (e) {
+      document.getElementById('hospGrid').innerHTML =
+        `<div class="empty"><div class="icon"></div><p>Failed to load hospitals: ${escHtml(e.message)}</p></div>`;
+    }
+  }
+
+  function navigateToDashboard(id, name) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('hospital', id);
+    window.history.pushState({}, '', url);
+    openDashboard(id, name);
+  }
+
+  function goSelector() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    const url = new URL(window.location.href);
+    url.searchParams.delete('hospital');
+    window.history.pushState({}, '', url);
+    openSelector();
+  }
+
+  //  Dashboard page 
+  async function openDashboard(hospId, hospName) {
+    currentHospId = hospId;
+    document.getElementById('selectorPage').style.display = 'none';
+    document.getElementById('dashboardPage').style.display = 'block';
+    document.getElementById('backBtn').style.display = 'inline-block';
+    document.getElementById('refreshBadge').style.display = 'flex';
+    document.getElementById('headerSub').textContent = 'Loading hospital info';
+
+    // Resolve hospital name if not passed
+    if (!hospName) {
+      try {
+        const r = await fetch(`${API}/hospitals/${hospId}`);
+        if (r.ok) { const h = await r.json(); hospName = h.name || hospId; }
+      } catch (_) {}
+    }
+
+    document.getElementById('headerTitle').textContent = hospName || hospId;
+    document.getElementById('headerSub').textContent = 'Incoming ambulance requests  auto-refreshes every 5 s';
+
+    // Wire filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.dataset.filter;
+        renderGrid(allRequests);
+      });
     });
-  });
 
-  // ── Helpers ────────────────────────────────────────────────────────────
-  function timeAgo(dateStr) {
-    const diff = (Date.now() - new Date(dateStr)) / 1000;
-    if (diff < 60) return `${Math.round(diff)}s ago`;
-    if (diff < 3600) return `${Math.round(diff/60)}m ago`;
-    return `${Math.round(diff/3600)}h ago`;
+    await fetchRequests();
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(fetchRequests, 5000);
   }
 
-  function avpuClass(c) {
-    if (!c) return '';
-    const m = { Alert:'alert', Verbal:'verbal', Pain:'pain', Unresponsive:'unresponsive' };
-    return m[c] || '';
+  //  Fetch requests for current hospital 
+  async function fetchRequests() {
+    try {
+      const res = await fetch(`${API}/request?hospitalId=${currentHospId}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      allRequests = await res.json();
+      updateStats(allRequests);
+      renderGrid(allRequests);
+      document.getElementById('refreshLabel').textContent =
+        'Live  ' + new Date().toLocaleTimeString('en-IN');
+    } catch (e) {
+      document.getElementById('refreshLabel').textContent = 'Error: ' + e.message;
+    }
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────
+  //  Stats 
+  function updateStats(requests) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const t = requests.filter(r => new Date(r.createdAt) >= today);
+    document.getElementById('statPending').textContent  = t.filter(r => r.status === 'pending').length;
+    document.getElementById('statAccepted').textContent = t.filter(r => r.status === 'accepted').length;
+    document.getElementById('statRejected').textContent = t.filter(r => r.status === 'rejected').length;
+    document.getElementById('statTotal').textContent    = t.length;
+  }
+
+  //  Render request cards 
   function renderGrid(requests) {
     const filtered = currentFilter === 'all' ? requests
       : requests.filter(r => r.status === currentFilter);
@@ -160,78 +286,73 @@
     const grid = document.getElementById('requestGrid');
 
     if (filtered.length === 0) {
-      grid.innerHTML = `<div class="empty"><div class="icon">🚑</div><p>No ${currentFilter === 'all' ? '' : currentFilter + ' '}requests found.</p></div>`;
+      grid.innerHTML = `<div class="empty"><div class="icon"></div><p>No ${currentFilter === 'all' ? '' : currentFilter + ' '}requests for this hospital.</p></div>`;
       return;
     }
 
     grid.innerHTML = filtered.map(req => {
-      const hosp = req.hospitalId;
-      const hospName = hosp?.name || req.hospitalId || 'Unknown Hospital';
-      const dist = req.distanceKm ? `${parseFloat(req.distanceKm).toFixed(1)} km` : '—';
-      const v = req.vitals || {};
-      const todos = req.todos || [];
-      const audioUrl = req.audioUrl ? `http://10.21.130.199:5000${req.audioUrl}` : null;
+      const dist     = req.distanceKm ? `${parseFloat(req.distanceKm).toFixed(1)} km` : '—';
+      const v        = req.vitals || {};
+      const todos    = req.todos  || [];
+      const audioUrl = req.audioUrl ? `${BASE}${req.audioUrl}` : null;
 
       const vitalsHtml = (v.heartRate || v.bloodPressure || v.spo2 || v.consciousness) ? `
         <div class="section">
-          <div class="section-title">🩺 Vitals</div>
+          <div class="section-title"> Patient Vitals</div>
           <div class="vitals-grid">
             <div class="vital-chip">
-              <div class="v">${v.heartRate || '—'}</div>
-              <div class="l">bpm HR</div>
+              <div class="v">${v.heartRate || '—'}</div><div class="l">bpm HR</div>
             </div>
             <div class="vital-chip">
-              <div class="v">${v.bloodPressure || '—'}</div>
-              <div class="l">BP mmHg</div>
+              <div class="v">${v.bloodPressure || '—'}</div><div class="l">BP mmHg</div>
             </div>
             <div class="vital-chip">
-              <div class="v">${v.spo2 ? v.spo2 + '%' : '—'}</div>
-              <div class="l">SpO₂</div>
+              <div class="v">${v.spo2 ? v.spo2 + '%' : '—'}</div><div class="l">SpO</div>
             </div>
             <div class="vital-chip ${avpuClass(v.consciousness)}">
-              <div class="v" style="font-size:11px">${v.consciousness || '—'}</div>
-              <div class="l">Consciousness</div>
+              <div class="v" style="font-size:11px">${v.consciousness || '—'}</div><div class="l">Consciousness</div>
             </div>
           </div>
           ${v.conditionNotes ? `<div class="notes-text">"${escHtml(v.conditionNotes)}"</div>` : ''}
-        </div>
-      ` : '';
+        </div>` : '';
 
       const audioHtml = audioUrl ? `
         <div class="audio-wrap">
-          <div class="section-title">🎙 Voice Note</div>
+          <div class="section-title"> Paramedic Voice Note</div>
           <audio controls src="${audioUrl}"></audio>
-        </div>
-      ` : '';
+        </div>` : '';
 
       const todosHtml = todos.length > 0 ? `
         <div class="section">
-          <div class="section-title">📋 Preparation TODOs (${todos.filter(t=>t.completed).length}/${todos.length} done)</div>
+          <div class="section-title" id="todoTitle-${req._id}">
+             Preparation TODOs (${todos.filter(t=>t.completed).length}/${todos.length} done)
+          </div>
           <ul class="todos-list">
             ${todos.map((t, i) => `
-              <li class="todo-item ${t.completed ? 'done' : ''}" onclick="toggleTodo('${req._id}', ${i}, this)">
-                <input type="checkbox" ${t.completed ? 'checked' : ''} onclick="event.stopPropagation(); toggleTodo('${req._id}', ${i}, this.closest('.todo-item'))">
+              <li class="todo-item ${t.completed ? 'done' : ''}" id="todo-${req._id}-${i}">
+                <input type="checkbox" ${t.completed ? 'checked' : ''}
+                  onchange="toggleTodo('${req._id}', ${i})">
                 <label>${escHtml(t.task)}</label>
-              </li>
-            `).join('')}
+              </li>`).join('')}
           </ul>
-        </div>
-      ` : '';
+        </div>` : '';
 
       const actionsHtml = req.status === 'pending' ? `
-        <div class="actions">
-          <button class="btn btn-accept" onclick="respond('${req._id}', 'accept', this)">✅ ACCEPT</button>
-          <button class="btn btn-reject" onclick="respond('${req._id}', 'reject', this)">❌ REJECT</button>
-        </div>
-      ` : `<div style="padding:10px 18px;font-size:12px;color:#9e9e9e">Response recorded — ${req.status}.</div>`;
+        <div class="actions" id="actions-${req._id}">
+          <button class="btn btn-accept" onclick="respond('${req._id}', 'accept')"> ACCEPT</button>
+          <button class="btn btn-reject" onclick="respond('${req._id}', 'reject')"> REJECT</button>
+        </div>` :
+        `<div style="padding:10px 18px;font-size:12px;color:#9e9e9e">
+          Responded: <b>${req.status.toUpperCase()}</b>
+         </div>`;
 
       return `
         <div class="card" id="card-${req._id}">
           <div class="card-header">
-            <div class="hospital-icon">🏥</div>
+            <div class="hospital-icon"></div>
             <div class="card-title">
-              <h3>${escHtml(hospName)}</h3>
-              <div class="meta">${timeAgo(req.createdAt)} · ${escHtml(req.emergencyType || 'Critical')} · ${dist}</div>
+              <h3>${escHtml(req.emergencyType || 'Critical Emergency')}</h3>
+              <div class="meta">${timeAgo(req.createdAt)}  Distance: ${dist}</div>
             </div>
             <span class="status-badge status-${req.status}">${req.status.toUpperCase()}</span>
           </div>
@@ -239,84 +360,68 @@
           ${audioHtml}
           ${todosHtml}
           ${actionsHtml}
-        </div>
-      `;
+        </div>`;
     }).join('');
+  }
+
+  //  Accept / Reject 
+  async function respond(requestId, action) {
+    const actionsDiv = document.getElementById(`actions-${requestId}`);
+    if (actionsDiv) {
+      actionsDiv.querySelectorAll('.btn').forEach(b => {
+        b.disabled = true;
+        b.innerHTML = '<span class="spinner"></span> ' + (action === 'accept' ? 'Accepting' : 'Rejecting');
+      });
+    }
+    try {
+      await fetch(`${API}/request/${requestId}/respond?action=${action}`);
+      await fetchRequests();
+    } catch (e) {
+      alert('Failed: ' + e.message);
+      await fetchRequests();
+    }
+  }
+
+  //  Toggle TODO 
+  async function toggleTodo(requestId, index) {
+    try {
+      const res = await fetch(`${API}/request/${requestId}/todo/${index}`, { method: 'PATCH' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+
+      const req = allRequests.find(r => r._id === requestId);
+      if (req) req.todos[index].completed = updated.todos[index].completed;
+
+      const item = document.getElementById(`todo-${requestId}-${index}`);
+      if (item) {
+        item.classList.toggle('done', updated.todos[index].completed);
+        item.querySelector('input').checked = updated.todos[index].completed;
+      }
+      const titleEl = document.getElementById(`todoTitle-${requestId}`);
+      if (titleEl) {
+        const todos = updated.todos;
+        titleEl.textContent = ` Preparation TODOs (${todos.filter(t=>t.completed).length}/${todos.length} done)`;
+      }
+    } catch (e) { console.error('toggleTodo error:', e); }
+  }
+
+  //  Helpers 
+  function avpuClass(c) {
+    if (!c) return '';
+    return { Alert:'alert', Verbal:'verbal', Pain:'pain', Unresponsive:'unresponsive' }[c] || '';
+  }
+
+  function timeAgo(dateStr) {
+    const diff = (Date.now() - new Date(dateStr)) / 1000;
+    if (diff < 60)   return `${Math.round(diff)}s ago`;
+    if (diff < 3600) return `${Math.round(diff/60)}m ago`;
+    return `${Math.round(diff/3600)}h ago`;
   }
 
   function escHtml(s) {
     if (!s) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
-
-  // ── Stats ───────────────────────────────────────────────────────────────
-  function updateStats(requests) {
-    // Count only today's requests
-    const today = new Date(); today.setHours(0,0,0,0);
-    const todayRequests = requests.filter(r => new Date(r.createdAt) >= today);
-    document.getElementById('statPending').textContent  = todayRequests.filter(r=>r.status==='pending').length;
-    document.getElementById('statAccepted').textContent = todayRequests.filter(r=>r.status==='accepted').length;
-    document.getElementById('statRejected').textContent = todayRequests.filter(r=>r.status==='rejected').length;
-    document.getElementById('statTotal').textContent    = todayRequests.length;
-  }
-
-  // ── Fetch requests ──────────────────────────────────────────────────────
-  async function fetchRequests() {
-    try {
-      const res = await fetch(`${API}/request`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      allRequests = await res.json();
-      updateStats(allRequests);
-      renderGrid(allRequests);
-      document.getElementById('refreshLabel').textContent = 'Live · ' + new Date().toLocaleTimeString('en-IN');
-    } catch (e) {
-      document.getElementById('refreshLabel').textContent = 'Error: ' + e.message;
-    }
-  }
-
-  // ── Accept / Reject ─────────────────────────────────────────────────────
-  async function respond(requestId, action, btn) {
-    const card = document.getElementById(`card-${requestId}`);
-    const buttons = card.querySelectorAll('.btn');
-    buttons.forEach(b => { b.disabled = true; b.innerHTML = '<span class="spinner"></span>'; });
-    try {
-      const res = await fetch(`${API}/request/${requestId}/respond?action=${action}`);
-      // The respond endpoint returns HTML — that's fine, just reload data
-      await fetchRequests();
-    } catch (e) {
-      buttons.forEach(b => { b.disabled = false; b.textContent = b.classList.contains('btn-accept') ? '✅ ACCEPT' : '❌ REJECT'; });
-      alert('Failed: ' + e.message);
-    }
-  }
-
-  // ── Toggle TODO ─────────────────────────────────────────────────────────
-  async function toggleTodo(requestId, index, item) {
-    try {
-      const res = await fetch(`${API}/request/${requestId}/todo/${index}`, { method: 'PATCH' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const updated = await res.json();
-      // Update local data
-      const req = allRequests.find(r => r._id === requestId);
-      if (req && req.todos[index]) req.todos[index].completed = updated.todos[index].completed;
-      // Update UI
-      const isDone = updated.todos[index]?.completed;
-      item.classList.toggle('done', isDone);
-      item.querySelector('input[type=checkbox]').checked = isDone;
-      // Update counter
-      const card = document.getElementById(`card-${requestId}`);
-      const todos = updated.todos;
-      const title = card.querySelector('.section-title');
-      if (title && title.textContent.includes('TODOs')) {
-        title.textContent = `📋 Preparation TODOs (${todos.filter(t=>t.completed).length}/${todos.length} done)`;
-      }
-    } catch (e) {
-      console.error('Toggle TODO failed:', e);
-    }
-  }
-
-  // ── Auto-refresh every 5 s ──────────────────────────────────────────────
-  fetchRequests();
-  setInterval(fetchRequests, 5000);
 </script>
 </body>
 </html>
