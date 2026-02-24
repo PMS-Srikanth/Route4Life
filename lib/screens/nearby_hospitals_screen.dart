@@ -9,6 +9,7 @@ import '../services/ranking_service.dart';
 import '../services/request_service.dart';
 import '../services/navigation_service.dart';
 import '../widgets/hospital_card.dart';
+import 'dashboard_screen.dart';
 
 class NearbyHospitalsScreen extends StatefulWidget {
   final LatLng? initialLocation;
@@ -420,6 +421,46 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                                                 origin: _searchLocation,  // patient pickup point
                                                 label: h.name,
                                               ),
+                                            ),
+                                          ),
+                                        // ── Arrived at Hospital → End Case ──
+                                        if (status == 'accepted')
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                6, 0, 6, 10),
+                                            child: ElevatedButton.icon(
+                                              icon: const Icon(
+                                                  Icons.local_hospital,
+                                                  size: 16,
+                                                  color: Colors.white),
+                                              label: const Text(
+                                                'Arrived at Hospital ✓ – End Case',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold),
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    const Color(0xFF388E3C),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        vertical: 10),
+                                              ),
+                                              onPressed: () {
+                                                // Clear entire navigation stack → Dashboard
+                                                Navigator.pushAndRemoveUntil(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (_) =>
+                                                        const DashboardScreen(),
+                                                  ),
+                                                  (route) => false,
+                                                );
+                                              },
                                             ),
                                           ),
                                         // Status chip — shown while polling

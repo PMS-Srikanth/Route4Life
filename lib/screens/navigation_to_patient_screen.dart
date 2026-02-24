@@ -222,27 +222,29 @@ class _NavigationToPatientScreenState
                       ),
                       const SizedBox(height: 8),
 
-                      // ── Find Hospital / I have the patient ──
+                      // ── Arrived at Patient → go to Step 2 ──
                       SizedBox(
                         width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton.icon(
-                          icon: const Icon(Icons.local_hospital,
-                              color: Color(0xFF388E3C)),
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.person_pin_circle,
+                              color: Colors.white),
                           label: const Text(
-                            'Patient Boarded → Step 2: Find Hospital',
+                            'Arrived at Patient ✓ – Find Hospital',
                             style: TextStyle(
-                                color: Color(0xFF388E3C),
-                                fontWeight: FontWeight.bold),
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15),
                           ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF388E3C)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF388E3C),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
                           onPressed: () {
-                            Navigator.push(
+                            // pushReplacement — no going back to Step 1
+                            Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => NearbyHospitalsScreen(
