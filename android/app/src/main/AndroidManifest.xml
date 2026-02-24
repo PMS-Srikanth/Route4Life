@@ -9,6 +9,11 @@
     <!-- Background location needed if tracking continues when app is minimised -->
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
 
+    <!-- Audio recording for patient voice notes -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28"/>
+
     <application
         android:label="Route4Life"
         android:name="${applicationName}"

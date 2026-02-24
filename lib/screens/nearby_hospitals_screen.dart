@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/hospital_model.dart';
 import '../models/request_model.dart';
+import '../models/vitals_model.dart';
 import '../services/hospital_service.dart';
 import '../services/location_service.dart';
 import '../services/ranking_service.dart';
@@ -14,8 +15,9 @@ import 'dashboard_screen.dart';
 
 class NearbyHospitalsScreen extends StatefulWidget {
   final LatLng? initialLocation;
+  final VitalsModel? vitals;
 
-  const NearbyHospitalsScreen({super.key, this.initialLocation});
+  const NearbyHospitalsScreen({super.key, this.initialLocation, this.vitals});
 
   @override
   State<NearbyHospitalsScreen> createState() => _NearbyHospitalsScreenState();
@@ -272,6 +274,7 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
         hospitalId: h.id,
         emergencyType: 'Critical',
         distanceKm: hDist / 1000,
+        vitals: widget.vitals,
       );
       if (!mounted) return;
 
@@ -546,6 +549,7 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                                                       hospitalId: h.id,
                                                       emergencyType: 'Critical',
                                                       distanceKm: distKm,
+                                                      vitals: widget.vitals,
                                                     );
                                                     if (!mounted) return;
                                                     setState(() {

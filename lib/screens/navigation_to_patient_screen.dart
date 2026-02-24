@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/case_model.dart';
 import '../controllers/case_controller.dart';
@@ -7,6 +9,7 @@ import '../utils/polyline_helper.dart';
 import '../services/navigation_service.dart';
 import 'pickup_threshold_screen.dart';
 import 'nearby_hospitals_screen.dart';
+import 'patient_vitals_screen.dart';
 
 class NavigationToPatientScreen extends StatefulWidget {
   final CaseModel caseModel;
@@ -25,6 +28,10 @@ class _NavigationToPatientScreenState
   Set<Polyline> _polylines = {};
   Set<Marker> _markers = {};
 
+  StreamSubscription<Position>? _positionSub;
+  bool _arrivalDialogShown = false;
+  double _distanceToPatientM = double.infinity;
+
   @override
   void initState() {
     super.initState();
@@ -38,6 +45,7 @@ class _NavigationToPatientScreenState
         label: widget.caseModel.patientName,
       );
     });
+    _startArrivalWatch();
   }
 
   Future<void> _init() async {
@@ -54,6 +62,76 @@ class _NavigationToPatientScreenState
 
   Future<LatLng?> _getDriverLocation() async {
     return _caseController.driverLocation;
+  }
+
+  void _startArrivalWatch() {
+    const settings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 15, // only fire when driver moves ≥15 m
+    );
+    _positionSub = Geolocator.getPositionStream(locationSettings: settings)
+        .listen((pos) {
+      final dist = Geolocator.distanceBetween(
+        pos.latitude,
+        pos.longitude,
+        widget.caseModel.patientLocation.latitude,
+        widget.caseModel.patientLocation.longitude,
+      );
+      if (mounted) setState(() => _distanceToPatientM = dist);
+      if (dist < 150 && !_arrivalDialogShown && mounted) {
+        _arrivalDialogShown = true;
+        _positionSub?.cancel();
+        _showArrivalDialog();
+      }
+    });
+  }
+
+  Future<void> _showArrivalDialog() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.location_on, color: Color(0xFF388E3C)),
+            SizedBox(width: 8),
+            Text('Arrived at Patient?'),
+          ],
+        ),
+        content: Text(
+          'You are within 150 m of ${widget.caseModel.patientName}.\n\nConfirm arrival to proceed to Step 2 – Find Hospital.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _arrivalDialogShown = false; // allow re-trigger
+              _startArrivalWatch();       // restart watch
+              Navigator.pop(context, false);
+            },
+            child: const Text('Not Yet'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF388E3C),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, Arrived ✓',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => NearbyHospitalsScreen(
+            initialLocation: widget.caseModel.patientLocation,
+          ),
+        ),
+      );
+    }
   }
 
   void _onStateChange() {
@@ -104,6 +182,7 @@ class _NavigationToPatientScreenState
 
   @override
   void dispose() {
+    _positionSub?.cancel();
     _caseController.removeListener(_onStateChange);
     _caseController.dispose();
     super.dispose();
@@ -184,7 +263,9 @@ class _NavigationToPatientScreenState
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                '${_routeController.currentRoute!.distanceText}'
+                                _distanceToPatientM.isFinite
+                            ? '${(_distanceToPatientM / 1000).toStringAsFixed(1)} km live'
+                            : '${_routeController.currentRoute!.distanceText}'
                                 ' · ${_routeController.currentRoute!.durationText}',
                                 style: const TextStyle(
                                     fontSize: 12,
@@ -243,12 +324,12 @@ class _NavigationToPatientScreenState
                             ),
                           ),
                           onPressed: () {
-                            // pushReplacement — no going back to Step 1
+                            // Go to vitals screen first, then hospital list
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => NearbyHospitalsScreen(
-                                  initialLocation:
+                                builder: (_) => PatientVitalsScreen(
+                                  patientLocation:
                                       widget.caseModel.patientLocation,
                                 ),
                               ),
