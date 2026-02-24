@@ -19,7 +19,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Pre-filled with Vijayawada Railway Station for quick navigation test
   final _latController = TextEditingController(text: '16.518200');
   final _lngController = TextEditingController(text: '80.616800');
-  final _patientNameController = TextEditingController(text: 'Test Patient');
+  final _patientNameController = TextEditingController();
   final _emergencyController = TextEditingController(text: 'Critical');
   bool _isGpsLoading = false;
 
