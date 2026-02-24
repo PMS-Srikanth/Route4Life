@@ -1,0 +1,298 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Manipal Hospital – Route4Life</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:#1a1a2e;min-height:100vh}
+
+    /* Header */
+    .hdr{background:linear-gradient(135deg,#b71c1c,#e53935);color:#fff;padding:18px 28px;display:flex;align-items:center;gap:16px;box-shadow:0 3px 14px rgba(183,28,28,.35)}
+    .hdr-left h1{font-size:22px;font-weight:800;letter-spacing:.2px}
+    .hdr-left p{font-size:12px;opacity:.8;margin-top:3px}
+    .hdr .sp{flex:1}
+    .live{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);padding:7px 18px;border-radius:24px;font-size:13px;font-weight:600}
+    .dot{width:9px;height:9px;border-radius:50%;background:#69f0ae;flex-shrink:0;animation:blink 1.5s infinite}
+    @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+
+    /* Stats */
+    .stats{display:flex;gap:14px;padding:22px 28px 0;flex-wrap:wrap}
+    .stat{background:#fff;border-radius:14px;padding:16px 22px;flex:1;min-width:110px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-bottom:3px solid #e0e0e0}
+    .stat .n{font-size:32px;font-weight:900;line-height:1}
+    .stat .l{font-size:11px;color:#999;margin-top:5px;text-transform:uppercase;letter-spacing:.5px}
+    .stat.p{border-bottom-color:#f39c12}.stat.p .n{color:#f39c12}
+    .stat.a{border-bottom-color:#27ae60}.stat.a .n{color:#27ae60}
+    .stat.r{border-bottom-color:#e53935}.stat.r .n{color:#e53935}
+
+    /* Tabs */
+    .tabs{display:flex;gap:8px;padding:18px 28px 0;flex-wrap:wrap}
+    .tab{padding:8px 22px;border-radius:24px;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#555;transition:.15s}
+    .tab.on{background:#b71c1c;border-color:#b71c1c;color:#fff;box-shadow:0 2px 8px rgba(183,28,28,.3)}
+
+    /* Grid */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(490px,1fr));gap:20px;padding:18px 28px 36px}
+    @media(max-width:580px){.grid{grid-template-columns:1fr;padding:12px 14px 24px}}
+
+    /* Card */
+    .card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.07);border-left:5px solid #ddd;transition:box-shadow .2s}
+    .card:hover{box-shadow:0 5px 24px rgba(0,0,0,.12)}
+    .card.pending{border-left-color:#f39c12}
+    .card.accepted{border-left-color:#27ae60}
+    .card.rejected{border-left-color:#e53935}
+
+    /* NEW card pop animation */
+    @keyframes popIn{0%{opacity:0;transform:translateY(-18px) scale(.97)}60%{transform:translateY(2px) scale(1.01)}100%{opacity:1;transform:translateY(0) scale(1)}}
+    .card.new-card{animation:popIn .45s cubic-bezier(.22,1,.36,1) forwards;box-shadow:0 0 0 3px #f39c12,0 6px 28px rgba(243,156,18,.25)}
+    @keyframes glow{0%,100%{box-shadow:0 0 0 3px #f39c12,0 6px 28px rgba(243,156,18,.25)}50%{box-shadow:0 0 0 5px #f39c12,0 8px 34px rgba(243,156,18,.4)}}
+    .card.new-card{animation:popIn .45s cubic-bezier(.22,1,.36,1) forwards,glow 1.2s ease .45s 3}
+
+    .ch{padding:15px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #f5f5f5}
+    .ch .ico{width:42px;height:42px;border-radius:12px;background:#fce4e4;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+    .ch .info{flex:1}
+    .ch .info strong{font-size:16px;font-weight:700;display:block}
+    .ch .info span{font-size:12px;color:#999;margin-top:2px;display:block}
+    .badge{padding:4px 13px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.5px}
+    .badge.pending{background:#fff8e1;color:#f39c12}
+    .badge.accepted{background:#e8f5e9;color:#27ae60}
+    .badge.rejected{background:#fce4e4;color:#e53935}
+    .new-badge{background:#f39c12;color:#fff;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;letter-spacing:.5px;margin-left:6px;animation:blink 1s infinite}
+
+    .sec{padding:13px 18px;border-bottom:1px solid #f8f8f8}
+    .sec-ttl{font-size:10px;font-weight:800;color:#bbb;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .vg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .vc{background:#f9fafb;border-radius:10px;padding:10px 6px;text-align:center;border:1px solid #eee}
+    .vc .v{font-size:18px;font-weight:900;color:#b71c1c}
+    .vc .l{font-size:10px;color:#bbb;margin-top:3px}
+    .vc.al{background:#eafaf1;border-color:#a9dfbf}.vc.vb{background:#fef9e7;border-color:#f9e79f}
+    .vc.pa{background:#fef3e2;border-color:#f8c471}.vc.un{background:#fce4e4;border-color:#f1948a}
+    .note{margin-top:9px;font-size:13px;color:#555;font-style:italic;background:#fffbf0;border-radius:8px;padding:9px 13px;border-left:3px solid #f39c12}
+
+    audio{width:100%;height:38px;margin-top:4px;border-radius:8px}
+
+    .todos{list-style:none;display:flex;flex-direction:column;gap:6px}
+    .tli{display:flex;align-items:center;gap:9px;padding:6px 2px;cursor:pointer}
+    .tli input{width:16px;height:16px;cursor:pointer;accent-color:#27ae60;flex-shrink:0}
+    .tli label{font-size:13px;cursor:pointer;flex:1;transition:color .15s}
+    .tli.done label{text-decoration:line-through;color:#ccc}
+
+    .acts{padding:14px 18px;display:flex;gap:10px}
+    .btn{flex:1;padding:12px;border-radius:10px;border:none;font-size:14px;font-weight:800;cursor:pointer;transition:.15s;letter-spacing:.3px}
+    .btn:disabled{opacity:.4;cursor:default}
+    .btn.acc{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;box-shadow:0 3px 10px rgba(39,174,96,.3)}
+    .btn.rej{background:linear-gradient(135deg,#c0392b,#e53935);color:#fff;box-shadow:0 3px 10px rgba(192,57,43,.3)}
+    .btn:hover:not(:disabled){opacity:.85;transform:translateY(-1px)}
+    .done-msg{padding:12px 18px;font-size:13px;color:#aaa;font-style:italic}
+
+    .empty{grid-column:1/-1;text-align:center;padding:80px 20px;color:#ccc}
+    .empty .ico{font-size:64px;margin-bottom:16px;display:block}
+    .empty p{font-size:15px}
+
+    /* Toast notification */
+    .toast{position:fixed;top:20px;right:20px;background:#1a1a2e;color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:999;display:flex;align-items:center;gap:10px;transform:translateX(120%);transition:transform .35s cubic-bezier(.22,1,.36,1)}
+    .toast.show{transform:translateX(0)}
+    .toast .t-ico{font-size:20px}
+
+    .spin{display:inline-block;width:14px;height:14px;border:3px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle}
+    @keyframes sp{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-left">
+    <h1> Manipal Hospital Vijayawada</h1>
+    <p>Route4Life  Ambulance Request Dashboard</p>
+  </div>
+  <div class="sp"></div>
+  <div class="live"><div class="dot"></div><span id="lbl">Connecting</span></div>
+</div>
+
+<div class="stats">
+  <div class="stat p"><div class="n" id="sP">0</div><div class="l">Pending</div></div>
+  <div class="stat a"><div class="n" id="sA">0</div><div class="l">Accepted</div></div>
+  <div class="stat r"><div class="n" id="sR">0</div><div class="l">Rejected</div></div>
+  <div class="stat"><div class="n" id="sT">0</div><div class="l">Total Today</div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" data-f="all">All</button>
+  <button class="tab" data-f="pending">Pending</button>
+  <button class="tab" data-f="accepted">Accepted</button>
+  <button class="tab" data-f="rejected">Rejected</button>
+</div>
+
+<div class="grid" id="grid">
+  <div class="empty"><span class="ico"></span><p>Loading requests</p></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span class="t-ico"></span>
+  <span id="toastMsg">New request received!</span>
+</div>
+
+<script>
+const MANIPAL = '699d6f9a26402f77ad66c403';
+const BASE    = 'http://10.21.130.199:5000';
+let all = [], filter = 'all', known = new Set();
+
+// Tabs
+document.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  b.classList.add('on');
+  filter = b.dataset.f;
+  render(all, false);
+}));
+
+//  Fetch 
+async function load() {
+  try {
+    const r = await fetch(`${BASE}/api/request?hospitalId=${MANIPAL}`);
+    if (!r.ok) throw new Error('HTTP '+r.status);
+    const fresh = await r.json();
+
+    // Detect truly new pending requests since last poll
+    const newIds = fresh
+      .filter(x => x.status === 'pending' && !known.has(x._id))
+      .map(x => x._id);
+
+    newIds.forEach(id => known.add(id));
+    fresh.forEach(x => known.add(x._id));
+
+    all = fresh;
+    stats(all);
+    render(all, newIds);
+
+    document.getElementById('lbl').textContent = 'Live  '+new Date().toLocaleTimeString('en-IN');
+    if (newIds.length) toast(`${newIds.length} new ambulance request arrived!`);
+  } catch(e) {
+    document.getElementById('lbl').textContent = ' '+e.message;
+  }
+}
+
+//  Stats 
+function stats(list) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const td = list.filter(r => new Date(r.createdAt) >= t);
+  document.getElementById('sP').textContent = td.filter(r=>r.status==='pending').length;
+  document.getElementById('sA').textContent = td.filter(r=>r.status==='accepted').length;
+  document.getElementById('sR').textContent = td.filter(r=>r.status==='rejected').length;
+  document.getElementById('sT').textContent = td.length;
+}
+
+//  Render 
+function render(list, newIds) {
+  const shown = filter==='all' ? list : list.filter(r=>r.status===filter);
+  const g = document.getElementById('grid');
+  if (!shown.length) {
+    g.innerHTML = `<div class="empty"><span class="ico"></span><p>No${filter==='all'?'':' '+filter} requests yet. Waiting for ambulances</p></div>`;
+    return;
+  }
+  // Sort: pending first, then by newest
+  shown.sort((a,b) => {
+    if (a.status==='pending' && b.status!=='pending') return -1;
+    if (b.status==='pending' && a.status!=='pending') return  1;
+    return new Date(b.createdAt)-new Date(a.createdAt);
+  });
+
+  g.innerHTML = shown.map(req => {
+    const isNew = Array.isArray(newIds) && newIds.includes(req._id);
+    const v = req.vitals||{}, todos=req.todos||[];
+    const dist = req.distanceKm ? parseFloat(req.distanceKm).toFixed(1)+' km' : '—';
+    const audio = req.audioUrl ? BASE+req.audioUrl : null;
+
+    const vitBlock = (v.heartRate||v.bloodPressure||v.spo2||v.consciousness) ? `
+      <div class="sec">
+        <div class="sec-ttl"> Patient Vitals</div>
+        <div class="vg">
+          <div class="vc"><div class="v">${v.heartRate||'—'}</div><div class="l">bpm HR</div></div>
+          <div class="vc"><div class="v">${v.bloodPressure||'—'}</div><div class="l">BP mmHg</div></div>
+          <div class="vc"><div class="v">${v.spo2?v.spo2+'%':'—'}</div><div class="l">SpO</div></div>
+          <div class="vc ${avpu(v.consciousness)}"><div class="v" style="font-size:11px">${v.consciousness||'—'}</div><div class="l">Consciousness</div></div>
+        </div>
+        ${v.conditionNotes?`<div class="note">"${esc(v.conditionNotes)}"</div>`:''}
+      </div>` : '';
+
+    const audBlock = audio ? `
+      <div class="sec">
+        <div class="sec-ttl"> Paramedic Voice Note</div>
+        <audio controls src="${audio}"></audio>
+      </div>` : '';
+
+    const todoBlock = todos.length ? `
+      <div class="sec">
+        <div class="sec-ttl" id="tt-${req._id}"> Prep TODOs &nbsp;<span style="font-weight:400;color:#ccc">(${todos.filter(t=>t.completed).length}/${todos.length} done)</span></div>
+        <ul class="todos">
+          ${todos.map((t,i)=>`
+            <li class="tli ${t.completed?'done':''}" id="tl-${req._id}-${i}">
+              <input type="checkbox" ${t.completed?'checked':''} onchange="tick('${req._id}',${i})">
+              <label>${esc(t.task)}</label>
+            </li>`).join('')}
+        </ul>
+      </div>` : '';
+
+    const actBlock = req.status==='pending' ? `
+      <div class="acts" id="act-${req._id}">
+        <button class="btn acc" onclick="respond('${req._id}','accept')"> &nbsp;ACCEPT</button>
+        <button class="btn rej" onclick="respond('${req._id}','reject')"> &nbsp;REJECT</button>
+      </div>` : `<div class="done-msg">Responded: <strong>${req.status.toUpperCase()}</strong></div>`;
+
+    return `
+      <div class="card ${req.status}${isNew?' new-card':''}" id="card-${req._id}">
+        <div class="ch">
+          <div class="ico"></div>
+          <div class="info">
+            <strong>${esc(req.emergencyType||'Critical Emergency')}${isNew?'<span class="new-badge">NEW</span>':''}</strong>
+            <span>${ago(req.createdAt)} &nbsp;&nbsp; ${dist}</span>
+          </div>
+          <span class="badge ${req.status}">${req.status.toUpperCase()}</span>
+        </div>
+        ${vitBlock}${audBlock}${todoBlock}${actBlock}
+      </div>`;
+  }).join('');
+}
+
+//  Respond 
+async function respond(id, action) {
+  const d = document.getElementById('act-'+id);
+  if (d) d.querySelectorAll('.btn').forEach(b=>{b.disabled=true;b.innerHTML='<span class="spin"></span>'});
+  try { await fetch(`${BASE}/api/request/${id}/respond?action=${action}`); await load(); }
+  catch(e){ alert('Error: '+e.message); load(); }
+}
+
+//  Tick TODO 
+async function tick(id, idx) {
+  try {
+    const r = await fetch(`${BASE}/api/request/${id}/todo/${idx}`,{method:'PATCH'});
+    if (!r.ok) return;
+    const u = await r.json();
+    const req = all.find(x=>x._id===id); if(req) req.todos[idx].completed=u.todos[idx].completed;
+    const li = document.getElementById(`tl-${id}-${idx}`);
+    if(li){li.classList.toggle('done',u.todos[idx].completed);li.querySelector('input').checked=u.todos[idx].completed}
+    const tt = document.getElementById(`tt-${id}`);
+    if(tt) tt.innerHTML = ` Prep TODOs &nbsp;<span style="font-weight:400;color:#ccc">(${u.todos.filter(t=>t.completed).length}/${u.todos.length} done)</span>`;
+  } catch(e){console.error(e)}
+}
+
+//  Toast 
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 4500);
+}
+
+//  Helpers 
+function avpu(c){return{Alert:'al',Verbal:'vb',Pain:'pa',Unresponsive:'un'}[c]||''}
+function ago(d){const s=(Date.now()-new Date(d))/1000;return s<60?Math.round(s)+'s ago':s<3600?Math.round(s/60)+'m ago':Math.round(s/3600)+'h ago'}
+function esc(s){return s?String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'):''}
+
+load();
+setInterval(load, 5000);
+</script>
+</body>
+</html>

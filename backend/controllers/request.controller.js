@@ -58,7 +58,10 @@ const createRequest = async (req, res) => {
         const timeStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
         const distanceText = distanceKm ? `${parseFloat(distanceKm).toFixed(1)} km away` : 'distance unknown';
         const vehicleText = vehicleNumber || 'N/A';
-        const dashboardUrl = `http://10.21.130.199:5000/dashboard?hospital=${hospitalId}`;
+        const MANIPAL_ID = '699d6f9a26402f77ad66c403';
+        const dashboardUrl = String(hospitalId) === MANIPAL_ID
+          ? `http://10.21.130.199:5000/manipal`
+          : `http://10.21.130.199:5000/dashboard?hospital=${hospitalId}`;
 
         // Build vitals HTML
         const vitalsHtml = vitals ? `
@@ -115,6 +118,9 @@ const createRequest = async (req, res) => {
                   </a>
                 </div>
                 <p style="color:#555;text-align:center;font-size:13px">Accept or reject this request from your hospital dashboard.</p>
+                <p style="text-align:center;margin-top:12px;font-size:13px;color:#888">
+                  Or copy this link: <a href="${dashboardUrl}" style="color:#e53935;word-break:break-all">${dashboardUrl}</a>
+                </p>
                 <p style="color:#999;font-size:12px;margin-top:24px;text-align:center">Route4Life Ambulance Navigation System</p>
               </div>
             </div>

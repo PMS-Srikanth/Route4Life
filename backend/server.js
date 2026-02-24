@@ -33,6 +33,12 @@ if (fs.existsSync(dashboardDist)) {
   app.get('/dashboard', (req, res) => res.sendFile(dashboardHtml));
 }
 
+// Hospital-specific dashboards
+const manipalHtml = path.join(__dirname, '../hospital-dashboard/manipal.html');
+if (fs.existsSync(manipalHtml)) {
+  app.get('/manipal', (req, res) => res.sendFile(manipalHtml));
+}
+
 // Routes
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/hospitals', require('./routes/hospital.routes'));
