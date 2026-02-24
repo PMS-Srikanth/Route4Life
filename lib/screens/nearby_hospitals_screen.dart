@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/hospital_model.dart';
 import '../models/request_model.dart';
@@ -34,11 +35,22 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
   // hospitalId → polling timer
   final Map<String, Timer> _pollTimers = {};
 
+  // Hospital arrival geo-fence
+  StreamSubscription<Position>? _hospitalPositionSub;
+  String? _monitoredHospitalId;
+  bool _hospitalArrivalDialogShown = false;
+  double _distanceToHospitalM = double.infinity;
+
+  // Smart re-routing: track active destination + auto-requested hospitals
+  String? _activeHospitalId;          // hospital we're currently en-route to
+  final Set<String> _autoRequestedIds = {}; // auto-sent after acceptance
+
   @override
   void dispose() {
     for (final t in _pollTimers.values) {
       t.cancel();
     }
+    _hospitalPositionSub?.cancel();
     super.dispose();
   }
 
@@ -93,7 +105,12 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
     });
   }
 
-  void _startPolling(String hospitalId, String requestId, String hospitalName) {
+  void _startPolling(
+    String hospitalId,
+    String requestId,
+    String hospitalName, {
+    bool isAutoEscalation = false,
+  }) {
     _pollTimers[hospitalId]?.cancel();
     int attempts = 0;
     const maxAttempts = 24; // 24 × 5s = 2 minutes
@@ -114,42 +131,198 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
           setState(() => _requestStatus[hospitalId] = status.name);
 
           if (status == RequestStatus.accepted) {
-            // Find the hospital model so we can navigate to it
             final hospital = _hospitals.firstWhere(
               (h) => h.id == hospitalId,
               orElse: () => _hospitals.first,
             );
 
-            // Show snackbar, then auto-launch Google Maps to hospital
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('✅ $hospitalName ACCEPTED! Opening navigation…'),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 3),
-              ),
-            );
-            // Small delay so the snackbar is visible before Maps opens
-            // Use patient pickup location as origin → hospital as destination
-            Future.delayed(const Duration(seconds: 2), () {
-              NavigationService.navigateTo(
-                hospital.location,
-                origin: _searchLocation,  // patient pickup point
-                label: hospitalName,
+            if (isAutoEscalation) {
+              // ── Closer hospital accepted while en-route ──
+              // Switch only if driver hasn't already arrived at the old destination
+              _switchToHospital(hospital);
+            } else {
+              // ── Manual request accepted (initial selection) ──
+              setState(() => _activeHospitalId = hospitalId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('✅ $hospitalName ACCEPTED! Opening navigation…'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 3),
+                ),
               );
-            });
+              Future.delayed(const Duration(seconds: 2), () {
+                NavigationService.navigateTo(
+                  hospital.location,
+                  origin: _searchLocation,
+                  label: hospitalName,
+                );
+              });
+              _startHospitalArrivalWatch(hospital);
+              // Silently check all closer hospitals in the background
+              _autoRequestCloserHospitals(hospital);
+            }
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                    '❌ $hospitalName REJECTED. Try the next hospital.'),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 6),
-              ),
-            );
+            if (isAutoEscalation) {
+              // Silently remove — auto-request rejected, no need to tell driver
+              setState(() {
+                _requestStatus.remove(hospitalId);
+                _autoRequestedIds.remove(hospitalId);
+              });
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('❌ $hospitalName REJECTED. Try the next hospital.'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 6),
+                ),
+              );
+            }
           }
         }
       },
     );
+  }
+
+  // ── Geo-fence: watch position and auto-prompt when near hospital ──
+  void _startHospitalArrivalWatch(HospitalModel hospital) {
+    _hospitalPositionSub?.cancel();
+    _monitoredHospitalId = hospital.id;
+    _hospitalArrivalDialogShown = false;
+    const settings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 15,
+    );
+    _hospitalPositionSub =
+        Geolocator.getPositionStream(locationSettings: settings)
+            .listen((pos) {
+      final dist = Geolocator.distanceBetween(
+        pos.latitude,
+        pos.longitude,
+        hospital.location.latitude,
+        hospital.location.longitude,
+      );
+      if (mounted) setState(() => _distanceToHospitalM = dist);
+      if (dist < 150 && !_hospitalArrivalDialogShown && mounted) {
+        _hospitalArrivalDialogShown = true;
+        _hospitalPositionSub?.cancel();
+        _showHospitalArrivalDialog(hospital.name);
+      }
+    });
+  }
+
+  Future<void> _showHospitalArrivalDialog(String hospitalName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.local_hospital, color: Color(0xFF388E3C)),
+            SizedBox(width: 8),
+            Text('Arrived at Hospital?'),
+          ],
+        ),
+        content: Text(
+          'You are within 150 m of $hospitalName.\n\nConfirm arrival to end this case.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _hospitalArrivalDialogShown = false;
+              Navigator.pop(context, false);
+            },
+            child: const Text('Not Yet'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF388E3C),
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, End Case ✓',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        (route) => false,
+      );
+    }
+  }
+
+  // ── Auto-request all hospitals CLOSER than the accepted one ──
+  Future<void> _autoRequestCloserHospitals(HospitalModel current) async {
+    final currentDist = current.distanceFromPatient ?? double.infinity;
+
+    for (final h in _hospitals) {
+      if (h.id == current.id) continue;
+      if (_requestIds.containsKey(h.id)) continue;       // already requested
+      if (_autoRequestedIds.contains(h.id)) continue;    // already auto-sent
+      final hDist = h.distanceFromPatient ?? double.infinity;
+      if (hDist >= currentDist) continue;                 // not closer
+
+      _autoRequestedIds.add(h.id);
+      if (mounted) setState(() => _requestStatus[h.id] = 'pending');
+
+      final reqId = await RequestService.sendRequest(
+        hospitalId: h.id,
+        emergencyType: 'Critical',
+        distanceKm: hDist / 1000,
+      );
+      if (!mounted) return;
+
+      if (reqId != null && !reqId.startsWith('ERR:')) {
+        setState(() => _requestIds[h.id] = reqId);
+        _startPolling(h.id, reqId, h.name, isAutoEscalation: true);
+      } else {
+        setState(() {
+          _requestStatus.remove(h.id);
+          _autoRequestedIds.remove(h.id);
+        });
+      }
+    }
+  }
+
+  // ── Switch active destination to a closer hospital ──
+  void _switchToHospital(HospitalModel newHospital) {
+    if (!mounted) return;
+    // Don't switch if driver already within arrival threshold
+    if (_distanceToHospitalM < 150) return;
+
+    _hospitalPositionSub?.cancel();
+    _hospitalArrivalDialogShown = false;
+
+    setState(() => _activeHospitalId = newHospital.id);
+
+    final oldHospital = _hospitals.firstWhere(
+      (h) => h.id != newHospital.id && _requestStatus[h.id] == 'accepted',
+      orElse: () => newHospital,
+    );
+    final savedKm = ((oldHospital.distanceFromPatient ?? 0) -
+            (newHospital.distanceFromPatient ?? 0)) /
+        1000;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '🔄 Closer hospital accepted! Switching to ${newHospital.name}'
+          '${savedKm > 0.1 ? ' (saves ${savedKm.toStringAsFixed(1)} km)' : ''}',
+        ),
+        backgroundColor: const Color(0xFF1565C0),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
+    NavigationService.navigateTo(
+      newHospital.location,
+      origin: _searchLocation,
+      label: newHospital.name,
+    );
+    _startHospitalArrivalWatch(newHospital);
   }
 
   @override
@@ -245,6 +418,38 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                       ),
 
                     const SizedBox(height: 4),
+
+                    // ── Auto re-route banner ──
+                    if (_activeHospitalId != null &&
+                        _autoRequestedIds.any(
+                            (id) => _requestStatus[id] == 'pending'))
+                      Container(
+                        width: double.infinity,
+                        color: const Color(0xFFE3F2FD),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: const Row(
+                          children: [
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF1565C0)),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '🔍 Automatically checking for closer hospitals…',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF1565C0),
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
                     // Hospital list
                     Expanded(
@@ -387,8 +592,107 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                                                   },
                                           ),
                                         ),
-                                        // ── Navigate button (shown when accepted) ──
-                                        if (status == 'accepted')
+                                        // ── Route-changed chip (accepted but no longer active) ──
+                                        if (status == 'accepted' &&
+                                            h.id != _activeHospitalId &&
+                                            _activeHospitalId != null)
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                6, 0, 6, 4),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey.shade100,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade400),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.swap_horiz,
+                                                      size: 14,
+                                                      color: Colors
+                                                          .grey.shade600),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    'Route changed to closer hospital',
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors
+                                                            .grey.shade600),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        // ── Live distance badge (when geo-fence active) ──
+                                        if (h.id == _activeHospitalId &&
+                                            _monitoredHospitalId == h.id &&
+                                            _distanceToHospitalM.isFinite)
+                                          Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                                6, 0, 6, 4),
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: _distanceToHospitalM <
+                                                        150
+                                                    ? const Color(0xFFE8F5E9)
+                                                    : const Color(0xFFE3F2FD),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: _distanceToHospitalM <
+                                                          150
+                                                      ? const Color(0xFF388E3C)
+                                                      : const Color(0xFF1976D2),
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    _distanceToHospitalM < 150
+                                                        ? Icons.check_circle
+                                                        : Icons.my_location,
+                                                    size: 16,
+                                                    color: _distanceToHospitalM <
+                                                            150
+                                                        ? const Color(
+                                                            0xFF388E3C)
+                                                        : const Color(
+                                                            0xFF1976D2),
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Text(
+                                                    _distanceToHospitalM < 1000
+                                                        ? '${_distanceToHospitalM.round()} m to hospital'
+                                                        : '${(_distanceToHospitalM / 1000).toStringAsFixed(1)} km to hospital',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: _distanceToHospitalM <
+                                                              150
+                                                          ? const Color(
+                                                              0xFF388E3C)
+                                                          : const Color(
+                                                              0xFF1976D2),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                        // ── Navigate button (only for active hospital) ──
+                                        if (h.id == _activeHospitalId)
                                           Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                                 6, 0, 6, 6),
@@ -418,13 +722,13 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                                               onPressed: () =>
                                                   NavigationService.navigateTo(
                                                 h.location,
-                                                origin: _searchLocation,  // patient pickup point
+                                                origin: _searchLocation,
                                                 label: h.name,
                                               ),
                                             ),
                                           ),
-                                        // ── Arrived at Hospital → End Case ──
-                                        if (status == 'accepted')
+                                        // ── Arrived at Hospital → End Case (only for active) ──
+                                        if (h.id == _activeHospitalId)
                                           Padding(
                                             padding: const EdgeInsets.fromLTRB(
                                                 6, 0, 6, 10),
@@ -483,11 +787,14 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                                                 ),
                                                 const SizedBox(width: 8),
                                                 Text(
-                                                  'Waiting for hospital response…',
-                                                  style: TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey
-                                                          .shade600),
+                                                    _autoRequestedIds.contains(h.id)
+                                                        ? 'Checking closer option…'
+                                                        : 'Waiting for hospital response…',
+                                                    style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: _autoRequestedIds.contains(h.id)
+                                                            ? const Color(0xFF1565C0)
+                                                            : Colors.grey.shade600),
                                                 ),
                                               ],
                                             ),
