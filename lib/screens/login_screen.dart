@@ -73,18 +73,27 @@ class _LoginScreenState extends State<LoginScreen> {
             msg = 'App not authorised for Firebase. Check SHA-1 in Firebase Console.';
             break;
           case 'internal-error':
-            msg = 'Firebase internal error — check that SHA-1 fingerprint is added '
-                'in Firebase Console → Project Settings → Android App, '
-                'and that Phone Auth is enabled.';
+            final rawMsg = e.message?.toLowerCase() ?? '';
+            if (rawMsg.contains('timeout') || rawMsg.contains('socket') || rawMsg.contains('network')) {
+              msg = '⚠️ Network blocked! Firebase cannot reach Google servers.\n\n'
+                  'Fix: Switch to MOBILE DATA (4G/5G) and try again.\n'
+                  'College/office WiFi often blocks Firebase.';
+            } else {
+              msg = 'Firebase internal error — ensure:\n'
+                  '1. Phone Auth is enabled in Firebase Console\n'
+                  '2. SHA-1 + SHA-256 fingerprints added\n'
+                  '3. Try switching to mobile data';
+            }
             break;
           case 'missing-client-identifier':
-            msg = 'reCAPTCHA / SafetyNet check failed. Add your SHA-1 to Firebase Console.';
+            msg = 'SafetyNet/Play Integrity check failed.\nTry switching to MOBILE DATA and retry.';
             break;
           default:
             final raw = e.message ?? '';
-            if (raw.toLowerCase().contains('internal')) {
-              msg = 'Firebase setup issue: add SHA-1 fingerprint in Firebase Console '
-                  '(Project Settings → Your Android App). Code: ${e.code}';
+            if (raw.toLowerCase().contains('timeout') || raw.toLowerCase().contains('socket')) {
+              msg = '⚠️ Network timeout! Switch to MOBILE DATA (4G/5G) and retry.';
+            } else if (raw.toLowerCase().contains('internal')) {
+              msg = 'Firebase setup issue. Try mobile data. Code: ${e.code}';
             } else {
               msg = raw.isNotEmpty ? raw : 'Failed to send OTP (${e.code})';
             }
