@@ -35,7 +35,7 @@ When an ambulance picks up a patient, the driver:
 1. Logs in via Firebase phone OTP
 2. Enters patient details and location
 3. The app automatically contacts **all nearby ranked hospitals** simultaneously
-4. Patient vitals are continuously sent to the accepting hospital every 20 seconds
+4. Patient vitals and a paramedic voice note are sent to the accepting hospital
 5. The hospital dashboard shows live vitals and preparation checklists
 6. Google Maps turn-by-turn navigation guides the driver to the hospital
 
@@ -86,7 +86,8 @@ When an ambulance picks up a patient, the driver:
 
 ### 🗺️ Dashboard
 - Patient name, phone, latitude, longitude input
-- Voice-to-text patient name capture (audio recording)
+- Paramedic can record a **voice note** about the patient's condition (up to 2 minutes)
+- Recorded voice note is uploaded with the case and **playable on the hospital dashboard** ("PARAMEDIC VOICE NOTE" audio player)
 - "View Nearby Hospitals" uses **patient** coordinates (not driver GPS)
 - Driver GPS used only as fallback if patient location fields are empty
 
@@ -99,12 +100,10 @@ When an ambulance picks up a patient, the driver:
 
 ### 💓 Live Patient Vitals
 - Vitals screen **auto-fills defaults** when opened: HR `82 bpm`, BP `118/76 mmHg`, SpO₂ `97%`, Consciousness `Alert` — driver can edit before submitting
-- Vitals screen captures: Heart Rate (bpm), Blood Pressure (systolic/diastolic), SpO₂ (%)
-- Vitals **auto-drift** every 20 seconds with realistic random variation:
-  - Heart Rate: ±3 bpm
-  - Blood Pressure: ±5 systolic / ±3 diastolic mmHg
-  - SpO₂: ±1%
-- Vitals pushed to all active/pending hospital requests via `PATCH /api/request/:id/vitals`
+- Vitals screen captures: Heart Rate (bpm), Blood Pressure (systolic/diastolic), SpO₂ (%), Consciousness level, and condition notes
+- Driver can record a **paramedic voice note** (up to 2 min) in the vitals screen — audio stored server-side
+- Vitals submitted once when driver taps "Proceed" and are sent to the hospital with the request
+- Hospital dashboard displays submitted vitals and plays back the paramedic voice note
 
 ### 🚦 Hospital Request Flow
 - Hospitals receive requests on their dashboard (polls every 4 seconds)
@@ -146,7 +145,7 @@ When an ambulance picks up a patient, the driver:
 | Database | MongoDB + Mongoose |
 | Email | Nodemailer (Gmail SMTP) |
 | Hospital Dashboard | Vanilla HTML + CSS + JavaScript |
-| Audio Input | `record` package (voice-to-text for patient name) |
+| Audio Input | `record` package (paramedic voice note — playable on both driver app and hospital dashboard) |
 
 ---
 
@@ -397,8 +396,8 @@ flutter run -d <device-id>
 5. App **auto-sends requests to all hospitals** immediately (no button needed)
 6. **Hospital Dashboard** shows the incoming request → Click **Accept**
 7. Driver app triggers **Google Maps navigation** to patient location
-8. Driver arrives at patient → taps **"Picked Up"** → enters vitals (HR, BP, SpO₂)
-9. Vitals appear on hospital dashboard and **auto-update every 20 seconds**
+8. Driver arrives at patient → taps **"Picked Up"** → enters vitals (HR, BP, SpO₂) and optionally records a **paramedic voice note**
+9. Vitals and voice note appear on hospital dashboard immediately after submission
 10. Driver follows navigation to hospital
 11. Driver taps **"Arrived at Hospital"** → Case marked complete ✅
 
@@ -434,14 +433,13 @@ flutter run -d <device-id>
 - On accept: `mailer.js` sends email; Flutter detects accepted status via polling → launches navigation
 - Hospital Reject → Flutter's `_autoRequestBetterRankedHospitals()` sends to next ranked hospital
 
-### 5. Live Vitals Push (`patient_vitals_screen.dart`, `request_service.dart`)
+### 5. Vitals & Voice Note Submission (`patient_vitals_screen.dart`, `request_service.dart`)
 - Vitals screen opens with pre-filled defaults (HR: 82, BP: 118/76, SpO₂: 97, Consciousness: Alert) — editable before submission
-- Initial vitals entered/confirmed by driver after patient pickup
-- `_startVitalsUpdater()` — `Timer.periodic(20 seconds)`
-- Each tick: `_varyVitals()` adds realistic random drift to values
-- `RequestService.pushVitals(requestId, vitals)` — PATCH to backend
-- Backend `updateVitals()` controller: `$set: { vitals: req.body }` on the request document
-- Hospital dashboard reads updated vitals from the request object every 4s poll
+- Driver fills vitals and optionally records a paramedic voice note (up to 2 min, stored as `.m4a`)
+- On "Proceed": `RequestService.pushVitals(requestId, vitals, audioPath)` — PATCH to backend
+- Backend `updateVitals()` controller: `$set: { vitals: req.body }` + saves audio file path on the request document
+- Hospital dashboard reads vitals and renders the audio file as an `<audio>` player labelled **"PARAMEDIC VOICE NOTE"**
+- Both driver app and hospital dashboard can play back the recorded voice note
 
 ### 6. Navigation (`navigation_service.dart`)
 - Builds URI: `geo:LAT,LNG?q=LAT,LNG` or `google.navigation:q=LAT,LNG&mode=d`
@@ -562,8 +560,7 @@ class AppConstants {
 | `google-services.json` has no `certificate_hash` field | By design | Newer Firebase projects validate SHA-1 server-side; it is no longer embedded in the JSON. |
 | Backend URL changes when switching networks | Limitation | Update `AppConstants.baseUrl` whenever your PC IP changes. |
 | Navigation opens external Google Maps | By design | Uses native Google Maps app for reliable turn-by-turn routing. |
-| Audio uploads in `backend/uploads/` | Dev only | In production, use cloud storage (AWS S3 or Google Cloud Storage). |
-| Vitals drift is simulated | Demo feature | Real deployment should integrate with medical IoT device APIs. |
+| Audio uploads in `backend/uploads/` | Dev only | In production, use cloud storage (AWS S3 or Google Cloud Storage). Voice note is already playable on both the driver app and hospital dashboard. |
 
 ---
 
