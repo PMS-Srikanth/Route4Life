@@ -2,7 +2,7 @@
 
 **An intelligent ambulance dispatch and routing system** built for emergency response — connecting ambulance drivers with the nearest available hospitals in real time, with live patient vitals monitoring and hospital preparation alerts.
 
-> Built as a Hackathon project by **Srikanth** using Flutter, Node.js, MongoDB, Firebase, and Google Maps.
+> Built as a Hackathon project by using Flutter, Node.js, MongoDB, Firebase, and Google Maps.
 
 ---
 
@@ -34,7 +34,7 @@ Route4Life is a full-stack mobile application that solves a critical problem in 
 When an ambulance picks up a patient, the driver:
 1. Logs in via Firebase phone OTP
 2. Enters patient details and location
-3. The app automatically contacts the **top 2 ranked hospitals** simultaneously
+3. The app automatically contacts **all nearby ranked hospitals** simultaneously
 4. Patient vitals are continuously sent to the accepting hospital every 20 seconds
 5. The hospital dashboard shows live vitals and preparation checklists
 6. Google Maps turn-by-turn navigation guides the driver to the hospital
@@ -92,12 +92,13 @@ When an ambulance picks up a patient, the driver:
 
 ### 🏥 Nearby Hospitals & Smart Dispatch
 - Lists hospitals in Vijayawada sorted by a multi-factor **ranking algorithm**
-- **Auto-sends requests to top 2 hospitals** on screen load — no manual tap needed
-- Live banner shows "📡 Automatically contacting top 2 hospitals…"
+- **Auto-sends requests to ALL hospitals** on screen load — no manual tap needed
+- Live banner shows "📡 Automatically contacting all hospitals…"
 - Each hospital card shows: name, distance, ETA, availability, rank score
 - Manual "Send Request" button available for any hospital in the list
 
 ### 💓 Live Patient Vitals
+- Vitals screen **auto-fills defaults** when opened: HR `82 bpm`, BP `118/76 mmHg`, SpO₂ `97%`, Consciousness `Alert` — driver can edit before submitting
 - Vitals screen captures: Heart Rate (bpm), Blood Pressure (systolic/diastolic), SpO₂ (%)
 - Vitals **auto-drift** every 20 seconds with realistic random variation:
   - Heart Rate: ±3 bpm
@@ -393,7 +394,7 @@ flutter run -d <device-id>
 2. Enter the 6-digit OTP → Logged in
 3. **Dashboard Screen** — Fill: Patient Name, Phone, Latitude, Longitude
 4. Tap **"View Nearby Hospitals"** → hospitals ranked and listed
-5. App **auto-sends requests** to top 2 hospitals immediately (no button needed)
+5. App **auto-sends requests to all hospitals** immediately (no button needed)
 6. **Hospital Dashboard** shows the incoming request → Click **Accept**
 7. Driver app triggers **Google Maps navigation** to patient location
 8. Driver arrives at patient → taps **"Picked Up"** → enters vitals (HR, BP, SpO₂)
@@ -423,9 +424,8 @@ flutter run -d <device-id>
 - Each hospital scored by weighted algorithm (distance, availability, specialisation, response time, load)
 - Sorted descending — best hospital is index 0
 - `_autoSendInitialRequests()` runs on `initState()`:
-  - Sends `POST /api/request` for hospital rank #1 with status `pending`
-  - Sends `POST /api/request` for hospital rank #2 with status `pending` (escalation)
-  - Banner displayed: "📡 Automatically contacting top 2 hospitals…"
+  - Sends `POST /api/request` for **every hospital** in the ranked list with status `pending`
+  - Banner displayed: "📡 Automatically contacting all hospitals…"
 
 ### 4. Request Lifecycle (`request.controller.js`)
 - `POST /api/request` — creates request, stores patient info + vitals + hospitalId
@@ -435,7 +435,8 @@ flutter run -d <device-id>
 - Hospital Reject → Flutter's `_autoRequestBetterRankedHospitals()` sends to next ranked hospital
 
 ### 5. Live Vitals Push (`patient_vitals_screen.dart`, `request_service.dart`)
-- Initial vitals entered by driver after patient pickup
+- Vitals screen opens with pre-filled defaults (HR: 82, BP: 118/76, SpO₂: 97, Consciousness: Alert) — editable before submission
+- Initial vitals entered/confirmed by driver after patient pickup
 - `_startVitalsUpdater()` — `Timer.periodic(20 seconds)`
 - Each tick: `_varyVitals()` adds realistic random drift to values
 - `RequestService.pushVitals(requestId, vitals)` — PATCH to backend
@@ -525,7 +526,7 @@ Download from Firebase Console after configuring the Android app.
 For presentations where real SMS isn't needed:
 
 Firebase Console → Authentication → Sign-in method → Phone → **Phone numbers for testing**:
-- Add number: `+91XXXXXXXXXX`
+- Add number: `+919999999999`
 - Add OTP: `123456`
 
 Use this number in the app to bypass all SMS sending. OTP will always be `123456`.
@@ -576,7 +577,7 @@ class AppConstants {
 
 ## Author
 
-**Srikanth** — Route4Life Hackathon Project, 2026
+**Srikanth,Paavan,Eswar,Harini,Pranathi** — Route4Life Hackathon Project, 2026
 
 ---
 
