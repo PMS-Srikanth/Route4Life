@@ -112,17 +112,17 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
       _usedRadius = usedRadius;
       _loading = false;
     });
-    // Auto-send to top 2 hospitals immediately on load
+    // Auto-send to ALL hospitals immediately on load
     if (ranked.isNotEmpty) {
       _autoSendInitialRequests();
     }
   }
 
-  // ── Auto-send to the top 2 ranked hospitals immediately on screen load ──
+  // ── Auto-send to ALL ranked hospitals immediately on screen load ──
   Future<void> _autoSendInitialRequests() async {
     if (!mounted || _hospitals.isEmpty) return;
     setState(() => _autoSendingInitial = true);
-    final topCount = _hospitals.length < 2 ? _hospitals.length : 2;
+    final topCount = _hospitals.length;
     for (int i = 0; i < topCount; i++) {
       final h = _hospitals[i];
       if (_autoRequestedIds.contains(h.id) || _requestIds.containsKey(h.id)) continue;
@@ -537,7 +537,7 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '📡 Automatically contacting top 2 hospitals…',
+                                '📡 Automatically contacting all hospitals…',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF7B1FA2),
