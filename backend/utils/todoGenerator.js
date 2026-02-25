@@ -120,11 +120,13 @@ const CONDITIONS = [
   },
 ];
 
-// Default minimal prep when no keywords match
+// Default real-life ER preparation tasks (used when no specific condition keywords match)
 const DEFAULT_TODOS = [
-  'Prepare A&E bay and monitoring',
-  'IV access and blood panel ready',
-  'Alert on-call physician',
+  'Assign ER bed / trauma bay and alert triage nurse',
+  'Notify on-call emergency physician of incoming case',
+  'Prepare large-bore I.V. access (18G) and 500 mL saline flush',
+  'Ensure O₂ supply (mask / nasal cannula), suction, and AED at bedside',
+  'Ready BP monitor, pulse oximeter, and 12-lead ECG machine',
 ];
 
 /**

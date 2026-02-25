@@ -327,12 +327,13 @@
           <div class="section-title" id="todoTitle-${req._id}">
              Preparation TODOs (${todos.filter(t=>t.completed).length}/${todos.length} done)
           </div>
+          ${req.status !== 'accepted' ? '<p style="font-size:11px;color:#f57c00;margin:0 0 8px;font-style:italic">⚠️ Accept this request to enable the preparation checklist</p>' : ''}
           <ul class="todos-list">
             ${todos.map((t, i) => `
               <li class="todo-item ${t.completed ? 'done' : ''}" id="todo-${req._id}-${i}">
-                <input type="checkbox" ${t.completed ? 'checked' : ''}
+                <input type="checkbox" ${t.completed ? 'checked' : ''} ${req.status !== 'accepted' ? 'disabled title="Accept the request first"' : ''}
                   onchange="toggleTodo('${req._id}', ${i})">
-                <label>${escHtml(t.task)}</label>
+                <label style="${req.status !== 'accepted' ? 'color:#bbb' : ''}">${escHtml(t.task)}</label>
               </li>`).join('')}
           </ul>
         </div>` : '';

@@ -107,6 +107,22 @@ class RequestService {
     }
   }
 
+  /// Push updated vitals for a live request — called every ~20 s from the ambulance.
+  static Future<bool> pushVitals(String requestId, VitalsModel vitals) async {
+    try {
+      final response = await http
+          .patch(
+            Uri.parse('${AppConstants.baseUrl}/request/$requestId/vitals'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'vitals': vitals.toJson()}),
+          )
+          .timeout(const Duration(seconds: 8));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Poll a specific request to check if accepted.
   static Future<RequestStatus> checkRequestStatus(String requestId) async {
     try {

@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
     await FirebaseAuthService.sendOTP(
       phoneNumber: e164,
       onAutoVerified: (credential) async {
-        // Auto-verified (Android SMS retriever)
+        // Auto-verified via Android SMS Retriever
         await _signInWithCredential(credential);
       },
       onCodeSent: (verificationId, _) {
@@ -45,11 +45,52 @@ class _LoginScreenState extends State<LoginScreen> {
           _otpSent = true;
           _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('📱 OTP sent! Check your SMS.'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
       },
       onFailed: (e) {
         if (!mounted) return;
+        String msg;
+        switch (e.code) {
+          case 'invalid-phone-number':
+            msg = 'Invalid phone number. Enter a 10-digit Indian mobile number.';
+            break;
+          case 'too-many-requests':
+            msg = 'Too many OTP requests. Please wait a few minutes and try again.';
+            break;
+          case 'quota-exceeded':
+            msg = 'SMS quota exceeded for today. Try again later.';
+            break;
+          case 'network-request-failed':
+            msg = 'No internet connection. Check your network and retry.';
+            break;
+          case 'app-not-authorized':
+            msg = 'App not authorised for Firebase. Check SHA-1 in Firebase Console.';
+            break;
+          case 'internal-error':
+            msg = 'Firebase internal error — check that SHA-1 fingerprint is added '
+                'in Firebase Console → Project Settings → Android App, '
+                'and that Phone Auth is enabled.';
+            break;
+          case 'missing-client-identifier':
+            msg = 'reCAPTCHA / SafetyNet check failed. Add your SHA-1 to Firebase Console.';
+            break;
+          default:
+            final raw = e.message ?? '';
+            if (raw.toLowerCase().contains('internal')) {
+              msg = 'Firebase setup issue: add SHA-1 fingerprint in Firebase Console '
+                  '(Project Settings → Your Android App). Code: ${e.code}';
+            } else {
+              msg = raw.isNotEmpty ? raw : 'Failed to send OTP (${e.code})';
+            }
+        }
         setState(() {
-          _error = e.message ?? 'Failed to send OTP';
+          _error = msg;
           _isLoading = false;
         });
       },
@@ -155,20 +196,33 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
             ] else ...[
-              Text(
-                'OTP sent to +91 ${_phoneController.text.trim()}',
-                style: const TextStyle(color: Colors.grey),
+              Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'OTP sent to +91 ${_phoneController.text.trim()}',
+                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Check your SMS inbox for a 6-digit code.',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _otpController,
                 keyboardType: TextInputType.number,
                 maxLength: 6,
+                autofocus: true,
                 decoration: const InputDecoration(
                   labelText: '6-digit OTP',
                   prefixIcon: Icon(Icons.sms),
                   border: OutlineInputBorder(),
                   counterText: '',
+                  hintText: 'Enter OTP from SMS',
                 ),
               ),
               TextButton(

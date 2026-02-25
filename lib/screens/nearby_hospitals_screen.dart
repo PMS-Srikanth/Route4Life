@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -47,12 +48,18 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
   String? _activeHospitalId;          // hospital we're currently en-route to
   final Set<String> _autoRequestedIds = {}; // auto-sent after acceptance
 
+  // Live vitals streaming
+  Timer? _vitalsUpdateTimer;
+  VitalsModel? _currentVitals;
+  bool _autoSendingInitial = false;
+
   @override
   void dispose() {
     for (final t in _pollTimers.values) {
       t.cancel();
     }
     _hospitalPositionSub?.cancel();
+    _vitalsUpdateTimer?.cancel();
     super.dispose();
   }
 
@@ -105,6 +112,92 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
       _usedRadius = usedRadius;
       _loading = false;
     });
+    // Auto-send to top 2 hospitals immediately on load
+    if (ranked.isNotEmpty) {
+      _autoSendInitialRequests();
+    }
+  }
+
+  // ── Auto-send to the top 2 ranked hospitals immediately on screen load ──
+  Future<void> _autoSendInitialRequests() async {
+    if (!mounted || _hospitals.isEmpty) return;
+    setState(() => _autoSendingInitial = true);
+    final topCount = _hospitals.length < 2 ? _hospitals.length : 2;
+    for (int i = 0; i < topCount; i++) {
+      final h = _hospitals[i];
+      if (_autoRequestedIds.contains(h.id) || _requestIds.containsKey(h.id)) continue;
+      _autoRequestedIds.add(h.id);
+      if (mounted) setState(() => _requestStatus[h.id] = 'pending');
+      final distKm = h.distanceFromPatient != null ? h.distanceFromPatient! / 1000 : null;
+      final reqId = await RequestService.sendRequest(
+        hospitalId: h.id,
+        emergencyType: 'Critical',
+        distanceKm: distKm,
+        vitals: widget.vitals,
+      );
+      if (!mounted) return;
+      if (reqId != null && !reqId.startsWith('ERR:')) {
+        setState(() => _requestIds[h.id] = reqId);
+        // Hospital #1 (rank 1, index 0) = primary; hospital #2 = escalation backup
+        _startPolling(h.id, reqId, h.name, isAutoEscalation: i > 0);
+      } else {
+        setState(() {
+          _requestStatus.remove(h.id);
+          _autoRequestedIds.remove(h.id);
+        });
+      }
+    }
+    if (mounted) {
+      setState(() => _autoSendingInitial = false);
+      if (widget.vitals != null && widget.vitals!.hasVitals && _requestIds.isNotEmpty) {
+        _currentVitals = widget.vitals!;
+        _startVitalsUpdater();
+      }
+    }
+  }
+
+  // ── Continuously vary and push vitals to all active requests every 20 s ──
+  void _startVitalsUpdater() {
+    _vitalsUpdateTimer?.cancel();
+    _vitalsUpdateTimer = Timer.periodic(const Duration(seconds: 20), (_) async {
+      if (!mounted || _currentVitals == null) return;
+      _currentVitals = _varyVitals(_currentVitals!);
+      for (final entry in _requestIds.entries) {
+        final st = _requestStatus[entry.key];
+        if (st == 'pending' || st == 'accepted') {
+          await RequestService.pushVitals(entry.value, _currentVitals!);
+        }
+      }
+    });
+  }
+
+  // ── Simulate realistic vital-sign drift (small random perturbations) ──
+  VitalsModel _varyVitals(VitalsModel base) {
+    final rng = Random();
+    int? bpSys, bpDia;
+    if (base.bloodPressure != null) {
+      final parts = base.bloodPressure!.split('/');
+      if (parts.length == 2) {
+        bpSys = int.tryParse(parts[0].trim());
+        bpDia = int.tryParse(parts[1].trim());
+      }
+    }
+    final newBp = (bpSys != null && bpDia != null)
+        ? '${(bpSys + rng.nextInt(11) - 5).clamp(60, 220)}'
+            '/${(bpDia + rng.nextInt(7) - 3).clamp(40, 140)}'
+        : base.bloodPressure;
+    return VitalsModel(
+      heartRate: base.heartRate == null
+          ? null
+          : (base.heartRate! + rng.nextInt(7) - 3).clamp(30, 250),
+      bloodPressure: newBp,
+      spo2: base.spo2 == null
+          ? null
+          : (base.spo2! + rng.nextInt(3) - 1).clamp(50, 100),
+      consciousness: base.consciousness,
+      conditionNotes: base.conditionNotes,
+      audioFilePath: base.audioFilePath,
+    );
   }
 
   void _startPolling(
@@ -160,8 +253,8 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                 );
               });
               _startHospitalArrivalWatch(hospital);
-              // Silently check all closer hospitals in the background
-              _autoRequestCloserHospitals(hospital);
+              // Auto-request all better-ranked hospitals in background
+              _autoRequestBetterRankedHospitals(hospital);
             }
           } else {
             if (isAutoEscalation) {
@@ -173,7 +266,7 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('❌ $hospitalName REJECTED. Try the next hospital.'),
+                  content: Text('❌ $hospitalName REJECTED. Try another hospital.'),
                   backgroundColor: Colors.red,
                   duration: const Duration(seconds: 6),
                 ),
@@ -256,24 +349,27 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
     }
   }
 
-  // ── Auto-request all hospitals CLOSER than the accepted one ──
-  Future<void> _autoRequestCloserHospitals(HospitalModel current) async {
-    final currentDist = current.distanceFromPatient ?? double.infinity;
+  // ── Auto-request all hospitals BETTER RANKED than the accepted one ──
+  // Sends to hospitals at lower list indices (higher rank) automatically.
+  Future<void> _autoRequestBetterRankedHospitals(HospitalModel current) async {
+    final currentIndex = _hospitals.indexWhere((h) => h.id == current.id);
+    if (currentIndex <= 0) return; // already best-ranked, nothing to check
 
-    for (final h in _hospitals) {
-      if (h.id == current.id) continue;
-      if (_requestIds.containsKey(h.id)) continue;       // already requested
-      if (_autoRequestedIds.contains(h.id)) continue;    // already auto-sent
-      final hDist = h.distanceFromPatient ?? double.infinity;
-      if (hDist >= currentDist) continue;                 // not closer
+    for (int i = 0; i < currentIndex; i++) {
+      final h = _hospitals[i];
+      if (_requestIds.containsKey(h.id)) continue;    // already requested
+      if (_autoRequestedIds.contains(h.id)) continue; // already auto-sent
 
       _autoRequestedIds.add(h.id);
       if (mounted) setState(() => _requestStatus[h.id] = 'pending');
 
+      final distKm = h.distanceFromPatient != null
+          ? h.distanceFromPatient! / 1000
+          : null;
       final reqId = await RequestService.sendRequest(
         hospitalId: h.id,
         emergencyType: 'Critical',
-        distanceKm: hDist / 1000,
+        distanceKm: distKm,
         vitals: widget.vitals,
       );
       if (!mounted) return;
@@ -422,6 +518,36 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
 
                     const SizedBox(height: 4),
 
+                    // ── Auto-sending initial requests banner ──
+                    if (_autoSendingInitial)
+                      Container(
+                        width: double.infinity,
+                        color: const Color(0xFFF3E5F5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        child: const Row(
+                          children: [
+                            SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Color(0xFF7B1FA2)),
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '📡 Automatically contacting top 2 hospitals…',
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF7B1FA2),
+                                    fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // ── Auto re-route banner ──
                     if (_activeHospitalId != null &&
                         _autoRequestedIds.any(
@@ -443,7 +569,7 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                '🔍 Automatically checking for closer hospitals…',
+                                '🔍 Checking better-ranked hospitals in background…',
                                 style: TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF1565C0),
@@ -706,7 +832,7 @@ class _NearbyHospitalsScreenState extends State<NearbyHospitalsScreen> {
                                                   size: 16,
                                                   color: Colors.white),
                                               label: const Text(
-                                                'Navigate to Hospital (Google Maps)',
+                                                'Navigate to Hospital 🗺',
                                                 style: TextStyle(
                                                     color: Colors.white,
                                                     fontWeight:

@@ -5,8 +5,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../models/case_model.dart';
 import '../controllers/case_controller.dart';
 import '../controllers/route_controller.dart';
-import '../utils/polyline_helper.dart';
 import '../services/navigation_service.dart';
+import '../utils/polyline_helper.dart';
 import 'pickup_threshold_screen.dart';
 import 'nearby_hospitals_screen.dart';
 import 'patient_vitals_screen.dart';
@@ -284,7 +284,7 @@ class _NavigationToPatientScreenState
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.navigation, color: Colors.white),
                           label: const Text(
-                            'Reopen Navigation to Patient',
+                            'Navigate to Patient 🗺',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold),

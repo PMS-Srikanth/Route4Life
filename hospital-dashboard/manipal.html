@@ -224,11 +224,12 @@ function render(list, newIds) {
     const todoBlock = todos.length ? `
       <div class="sec">
         <div class="sec-ttl" id="tt-${req._id}"> Prep TODOs &nbsp;<span style="font-weight:400;color:#ccc">(${todos.filter(t=>t.completed).length}/${todos.length} done)</span></div>
+        ${req.status !== 'accepted' ? '<p style="font-size:11px;color:#f39c12;margin:0 0 8px;font-style:italic">⚠️ Accept this request to enable preparation checklist</p>' : ''}
         <ul class="todos">
           ${todos.map((t,i)=>`
             <li class="tli ${t.completed?'done':''}" id="tl-${req._id}-${i}">
-              <input type="checkbox" ${t.completed?'checked':''} onchange="tick('${req._id}',${i})">
-              <label>${esc(t.task)}</label>
+              <input type="checkbox" ${t.completed?'checked':''} ${req.status!=='accepted'?'disabled title="Accept the request first"':''} onchange="tick('${req._id}',${i})">
+              <label style="${req.status!=='accepted'?'color:#bbb':''} ">${esc(t.task)}</label>
             </li>`).join('')}
         </ul>
       </div>` : '';

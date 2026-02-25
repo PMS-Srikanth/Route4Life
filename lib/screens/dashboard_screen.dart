@@ -16,21 +16,29 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  // Pre-filled with Vijayawada Railway Station for quick navigation test
   final _latController = TextEditingController(text: '16.518200');
   final _lngController = TextEditingController(text: '80.616800');
   final _patientNameController = TextEditingController();
   final _emergencyController = TextEditingController(text: 'Critical');
-  bool _isGpsLoading = false;
 
-  Future<void> _autoDetectGPS() async {
-    setState(() => _isGpsLoading = true);
-    final loc = await LocationService.getCurrentLocation();
-    if (loc != null) {
-      _latController.text = loc.latitude.toStringAsFixed(6);
-      _lngController.text = loc.longitude.toStringAsFixed(6);
+  /// Open Nearby Hospitals using the PATIENT coordinates from the fields.
+  /// Falls back to driver’s GPS only if both fields are empty.
+  Future<void> _viewNearbyFromPatient() async {
+    final lat = double.tryParse(_latController.text.trim());
+    final lng = double.tryParse(_lngController.text.trim());
+    LatLng? location;
+    if (lat != null && lng != null) {
+      location = LatLng(lat, lng);
+    } else {
+      location = await LocationService.getCurrentLocation();
     }
-    setState(() => _isGpsLoading = false);
+    if (!context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NearbyHospitalsScreen(initialLocation: location),
+      ),
+    );
   }
 
   void _startCase() {
@@ -149,9 +157,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: TextField(
                     controller: _latController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                     decoration: const InputDecoration(
-                      labelText: 'Latitude',
+                      labelText: 'Patient Latitude',
+                      prefixIcon: Icon(Icons.location_on),
                       border: OutlineInputBorder(),
                     ),
                   ),
@@ -160,26 +169,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: TextField(
                     controller: _lngController,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
                     decoration: const InputDecoration(
-                      labelText: 'Longitude',
+                      labelText: 'Patient Longitude',
+                      prefixIcon: Icon(Icons.location_on),
                       border: OutlineInputBorder(),
                     ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: _isGpsLoading ? null : _autoDetectGPS,
-              icon: _isGpsLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.my_location),
-              label: const Text('Auto-detect GPS'),
             ),
             const SizedBox(height: 20),
             SizedBox(
@@ -233,18 +231,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               width: double.infinity,
               height: 52,
               child: OutlinedButton.icon(
-                onPressed: () async {
-                  final loc = await LocationService.getCurrentLocation();
-                  if (!context.mounted) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => NearbyHospitalsScreen(
-                        initialLocation: loc,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: _viewNearbyFromPatient,
                 icon: const Icon(Icons.local_hospital,
                     color: Color(0xFFE53935)),
                 label: const Text(

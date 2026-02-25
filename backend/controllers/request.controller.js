@@ -213,7 +213,24 @@ const updateTodo = async (req, res) => {
   }
 };
 
-module.exports = { createRequest, getRequestById, getRequestsByCase, getAllRequests, updateRequestStatus, updateTodo, respondToRequest };
+// PATCH /api/request/:id/vitals  — ambulance pushes live vitals updates
+const updateVitals = async (req, res) => {
+  try {
+    const { vitals } = req.body;
+    if (!vitals) return res.status(400).json({ message: 'vitals object required' });
+    const request = await Request.findByIdAndUpdate(
+      req.params.id,
+      { $set: { vitals } },
+      { new: true },
+    );
+    if (!request) return res.status(404).json({ message: 'Request not found' });
+    res.json(request);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+module.exports = { createRequest, getRequestById, getRequestsByCase, getAllRequests, updateRequestStatus, updateTodo, respondToRequest, updateVitals };
 
 // GET /api/request/:id/respond?action=accept|reject
 // Hospital clicks this link from the email

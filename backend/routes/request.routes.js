@@ -10,6 +10,7 @@ const {
   updateRequestStatus,
   updateTodo,
   respondToRequest,
+  updateVitals,
 } = require('../controllers/request.controller');
 
 // Multer — save audio files to uploads/
@@ -24,6 +25,7 @@ router.get('/', getAllRequests);                           // GET  /api/request 
 router.get('/case/:caseId', getRequestsByCase);            // GET  /api/request/case/:caseId
 router.get('/:id/respond', respondToRequest);              // GET  /api/request/:id/respond?action=
 router.get('/:id', getRequestById);                        // GET  /api/request/:id
+router.patch('/:id/vitals', updateVitals);                  // PATCH /api/request/:id/vitals
 router.patch('/:id/todo/:todoIndex', updateTodo);          // PATCH /api/request/:id/todo/:i
 router.patch('/:id', updateRequestStatus);                 // PATCH /api/request/:id
 
