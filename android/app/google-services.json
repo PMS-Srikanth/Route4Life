@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "221577486503",
+    "project_id": "route4life-1f671",
+    "storage_bucket": "route4life-1f671.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:221577486503:android:9b0bdb5008cd3d183bbb82",
+        "android_client_info": {
+          "package_name": "com.route4life.route4life"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqiZP0zkhh9ONzfxMxZDRUvEbXI1vvHRk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
